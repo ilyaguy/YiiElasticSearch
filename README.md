@@ -232,8 +232,8 @@ ACTIONS
     documents indexed under this type.
 
 
-  map --model=<model> --map=<filename> [--skipExisting]
-  map --index=<index> --map=<filename> [--skipExisting]
+  map --model=<model> --map=<filename> [--config=<filename>] [--skipExisting]
+  map --index=<index> --map=<filename> [--config=<filename>] [--skipExisting]
 
     Create a mapping in the index specified with the <index> or implicitly
     through the <model> parameter. The mapping must be available from a JSON
@@ -247,6 +247,9 @@ ACTIONS
             },
             ...
         }
+
+    If --config is used, index is configured before create mapping. Config file must be
+    valid JSON file.
 
     If --skipExisting is used, no action is performed if there's are already
     a mapping for this index.
