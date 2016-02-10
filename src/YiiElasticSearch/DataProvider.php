@@ -131,8 +131,14 @@ class DataProvider extends CDataProvider
             foreach($this->resultSet->getResults() as $result) {
                 $model = new $modelClass;
                 $model->setIsNewRecord(false);
-                $model->parseElasticDocument($result);
-                $this->fetchedData[] = $model;
+                /*
+                    If parseElasticDocument return false the document will be not added to search result.
+                    It's useful to do "return $this->refresh();" in the parseElasticDocument().
+                    For example, for data presented in search index, but missed in local db.
+                */
+                if (false !== $model->parseElasticDocument($result)) {
+                    $this->fetchedData[] = $model;
+                }
             }
 
             if($pagination!==false)
