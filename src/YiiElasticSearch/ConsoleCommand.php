@@ -76,8 +76,8 @@ ACTIONS
     in elasticsearch, mapping is also lost.
 
 
-  * map --model=<model> --map=<filename> [--skipExisting]
-    map --index=<index> --map=<filename> [--skipExisting]
+  * map --model=<model> --map=<filename> [--config=<filename>] [--skipExisting]
+    map --index=<index> --map=<filename> [--config=<filename>] [--skipExisting]
 
     Create a mapping in the index specified with the <index> or implicitly
     through the <model> parameter. The mapping must be available from a JSON
@@ -91,6 +91,9 @@ ACTIONS
             },
             ...
         }
+
+    If --config is used, index is configured before create mapping. Config file must be
+    valid JSON file.
 
     If --skipExisting is used, no action is performed if there's are already
     a mapping for this index.
@@ -171,15 +174,18 @@ EOD;
     }
 
     /**
-     * @param string $map the path to the JSON map file
+     * @param string $map    the path to the JSON map file
+     * @param string $config the path to the JSON settings file
+
      * @param bool $noDelete whether to supress index deletion
      */
-    public function actionMap($map)
+    public function actionMap($map, $config = '')
     {
         $index      = $this->getIndex(true, true);
         $file       = file_get_contents($map);
         $mapping    = json_decode($file);
         $elastic    = Yii::app()->elasticSearch;
+        $configArray = array();
 
         if($elastic->mappingExists($index)) {
             if($this->skipExisting) {
@@ -192,13 +198,23 @@ EOD;
             }
         }
 
+        if (!empty($config)) {
+            $file       = file_get_contents($config);
+            $settings   = json_decode($file);
+
+            if($settings === null) {
+                $this->usageError("Invalid JSON in $config");
+            }
+            $configArray['settings'] = $settings;
+        }
+
         if($mapping===null) {
             $this->usageError("Invalid JSON in $map");
         }
 
-        $body = json_encode(array(
-            'mappings' => $mapping,
-        ));
+        $configArray['mappings'] = $mapping;
+
+        $body = json_encode($configArray);
 
         $this->performRequest($elastic->client->put($index, array("Content-type" => "application/json"))->setBody($body));
 
@@ -299,6 +315,7 @@ EOD;
      */
     protected function message($text, $newline=true)
     {
+        Yii::log($text, 'info', 'console.elastic');
         if(!$this->quiet) {
             echo $text . ($newline ? "\n" : '');
         }
